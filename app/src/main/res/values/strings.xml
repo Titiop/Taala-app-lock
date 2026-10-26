@@ -1,0 +1,63 @@
+<resources>
+    <string name="app_name">Taala</string>
+    <string name="app_tagline">Private, calm app lock</string>
+
+    <!-- Navigation -->
+    <string name="nav_apps">Apps</string>
+    <string name="nav_profiles">Profiles</string>
+    <string name="nav_schedules">Schedules</string>
+    <string name="nav_intruder">Intruder</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Home -->
+    <string name="home_title">Taala</string>
+    <string name="home_status_protected">Active Protection</string>
+    <string name="home_status_paused">Protection Paused</string>
+    <string name="home_status_attention">Action Needed</string>
+    <string name="home_search_placeholder">Search installed apps</string>
+    <string name="home_filter_all">All</string>
+    <string name="home_filter_locked">Locked</string>
+    <string name="home_filter_unlocked">Unlocked</string>
+    <string name="home_filter_system">System</string>
+    <string name="home_filter_user">User</string>
+    <string name="home_suggested_row">Suggested to lock</string>
+    <string name="home_empty_title">No apps match search</string>
+    <string name="home_empty_desc">Try searching with a different name or clear filters.</string>
+
+    <!-- Profiles -->
+    <string name="profiles_title">Profiles</string>
+    <string name="profiles_desc">Group apps into profiles with tailored re-lock timing.</string>
+
+    <!-- Schedules -->
+    <string name="schedules_title">Schedules</string>
+    <string name="schedules_desc">Set automated focus hours when specific profiles activate.</string>
+
+    <!-- Intruder -->
+    <string name="intruder_title">Intruder Log</string>
+    <string name="intruder_desc">Timeline of failed unlock attempts with optional photos.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_desc">Configure engines, security, delay, and appearance.</string>
+
+    <!-- Accessibility Service (Section 6 & 8) -->
+    <string name="accessibility_service_label">Taala App Protection</string>
+    <string name="accessibility_service_description">Taala detects when a locked app opens to display the security cover instantly. Taala never reads text you type, never records screen contents, and requires no internet access.</string>
+
+    <!-- Setup / Onboarding -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="setup_wizard_title">Taala Setup</string>
+
+    <!-- Quick Settings & Notifications -->
+    <string name="quick_settings_tile_label">Taala Lock</string>
+    <string name="notification_channel_name">Taala Protection Service</string>
+    <string name="notification_channel_desc">Shows ongoing status when compatibility engine or paused lock is active.</string>
+    <string name="notification_title_active">Taala Protection is Active</string>
+    <string name="notification_text_active">Your locked apps are actively guarded.</string>
+    <string name="notification_title_paused">Taala Protection Paused</string>
+    <string name="notification_text_paused">Tap to resume protection now.</string>
+    <string name="action_resume_protection">Resume</string>
+    <string name="action_pause_15m">Pause 15m</string>
+</resources>
