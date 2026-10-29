@@ -47,6 +47,8 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.example.taala"
             android:theme="@style/Theme.Taala.Starting">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -58,10 +60,12 @@
         <activity
             android:name=".feature.lock.LockScreenActivity"
             android:exported="false"
-            android:theme="@style/Theme.Taala"
-            android:launchMode="singleTask"
+            android:theme="@style/Theme.Taala.LockScreen"
+            android:taskAffinity="com.example.taala.lockscreen"
+            android:launchMode="singleInstance"
             android:excludeFromRecents="true"
             android:noHistory="true"
+            android:windowSoftInputMode="adjustNothing"
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize" />
 
         <!-- Engine A: Accessibility Service (Section 2 & 6) -->

@@ -168,6 +168,8 @@ class LockScreenActivity : FragmentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Ensure instant cover overlay is hidden now that activity is attached
+        TaalaAccessibilityService.dismissCover()
         // Auto trigger biometric prompt
         promptBiometricAuth()
     }
@@ -196,15 +198,41 @@ class LockScreenActivity : FragmentActivity() {
     private fun handleUnlockSuccess() {
         window.decorView.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
         intruderManager.onUnlockSuccess(targetPackage)
+
+        // Dismiss instant cover overlay immediately
+        TaalaAccessibilityService.dismissCover()
+
         if (targetPackage.isNotEmpty()) {
             TaalaAccessibilityService.sessionTracker.registerAppUnlocked(
                 packageName = targetPackage,
                 relockDelaySeconds = 30
             )
+
+            // Explicitly bring the target app to the foreground so Taala is never exposed
+            try {
+                val launchIntent = packageManager.getLaunchIntentForPackage(targetPackage)?.apply {
+                    addFlags(
+                        Intent.FLAG_ACTIVITY_NEW_TASK or
+                        Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED or
+                        Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                    )
+                }
+                if (launchIntent != null) {
+                    startActivity(launchIntent)
+                }
+            } catch (_: Exception) {
+            }
         }
-        // Set result and finish lock screen to open the app
+
+        // Finish lock screen cleanly
         setResult(RESULT_OK)
         finish()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, android.R.anim.fade_out)
+        } else {
+            @Suppress("DEPRECATION")
+            overridePendingTransition(0, android.R.anim.fade_out)
+        }
     }
 
     private fun sendUserHome() {
@@ -470,12 +498,39 @@ private fun LockScreenContent(
                         errorMessage = pinError,
                         onDigitClick = { digit ->
                             if (lockoutSeconds == 0 && pinInput.length < 8) {
-                                pinInput += digit
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                val newPin = pinInput + digit
+                                pinInput = newPin
                                 pinError = null
+
+                                // Instant auto-verification for frictionless unlock
+                                if (newPin.length >= 4) {
+                                    when (val result = pinManager.verifyPin(newPin)) {
+                                        is PinVerificationResult.Success -> {
+                                            isSuccessAnim = true
+                                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                            coroutineScope.launch {
+                                                delay(120L)
+                                                onUnlockSuccess()
+                                            }
+                                        }
+                                        is PinVerificationResult.Decoy -> {
+                                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                            coroutineScope.launch {
+                                                delay(120L)
+                                                onNavigateHome()
+                                            }
+                                        }
+                                        else -> {
+                                            // Wait for explicit OK or more digits
+                                        }
+                                    }
+                                }
                             }
                         },
                         onDeleteClick = {
                             if (pinInput.isNotEmpty()) {
+                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                                 pinInput = pinInput.dropLast(1)
                                 pinError = null
                             }
@@ -486,16 +541,16 @@ private fun LockScreenContent(
                                 when (result) {
                                     is PinVerificationResult.Success -> {
                                         isSuccessAnim = true
+                                        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                         coroutineScope.launch {
-                                            delay(300L)
+                                            delay(150L)
                                             onUnlockSuccess()
                                         }
                                     }
                                     is PinVerificationResult.Decoy -> {
-                                        // Decoy passcode: perform subtle haptic and navigate Home
                                         view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                                         coroutineScope.launch {
-                                            delay(200L)
+                                            delay(150L)
                                             onNavigateHome()
                                         }
                                     }
@@ -532,6 +587,7 @@ private fun LockScreenContent(
                             }
                         },
                         onBackToBiometric = {
+                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
                             showPinKeypad = false
                             pinInput = ""
                             pinError = null
@@ -582,10 +638,11 @@ private fun PinKeypad(
     ) {
         // PIN dot indicators
         Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             modifier = Modifier.padding(vertical = 12.dp)
         ) {
-            repeat(6) { index ->
+            val totalDots = maxOf(4, minOf(6, pin.length.coerceAtLeast(4)))
+            repeat(totalDots) { index ->
                 val isFilled = index < pin.length
                 Box(
                     modifier = Modifier
@@ -593,7 +650,7 @@ private fun PinKeypad(
                         .clip(CircleShape)
                         .background(
                             if (isFilled) MaterialTheme.colorScheme.primary
-                            else Color.White.copy(alpha = 0.25f)
+                            else Color.White.copy(alpha = 0.22f)
                         )
                 )
             }
@@ -627,33 +684,47 @@ private fun PinKeypad(
 
         keys.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
+                horizontalArrangement = Arrangement.spacedBy(22.dp),
                 modifier = Modifier.padding(vertical = 6.dp)
             ) {
                 row.forEach { key ->
                     when (key) {
                         "del" -> {
-                            IconButton(
-                                onClick = onDeleteClick,
-                                modifier = Modifier.size(56.dp)
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.White.copy(alpha = 0.05f),
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .clickable { onDeleteClick() }
                             ) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.Backspace,
-                                    contentDescription = "Delete",
-                                    tint = Color.White.copy(alpha = 0.8f)
-                                )
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Backspace,
+                                        contentDescription = "Delete",
+                                        tint = Color.White.copy(alpha = 0.85f),
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
                             }
                         }
                         "ok" -> {
-                            IconButton(
-                                onClick = onSubmitClick,
-                                modifier = Modifier.size(56.dp)
+                            Surface(
+                                shape = CircleShape,
+                                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                                modifier = Modifier
+                                    .size(64.dp)
+                                    .clip(CircleShape)
+                                    .clickable { onSubmitClick() }
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = "Confirm",
-                                    tint = MaterialTheme.colorScheme.tertiary
-                                )
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Confirm",
+                                        tint = MaterialTheme.colorScheme.tertiary,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
                             }
                         }
                         else -> {
@@ -661,13 +732,14 @@ private fun PinKeypad(
                                 shape = CircleShape,
                                 color = Color.White.copy(alpha = 0.08f),
                                 modifier = Modifier
-                                    .size(56.dp)
+                                    .size(64.dp)
+                                    .clip(CircleShape)
                                     .clickable(enabled = lockoutSeconds == 0) { onDigitClick(key) }
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
                                         text = key,
-                                        style = MaterialTheme.typography.titleLarge.copy(
+                                        style = MaterialTheme.typography.headlineSmall.copy(
                                             fontWeight = FontWeight.SemiBold,
                                             color = Color.White
                                         )
@@ -680,10 +752,10 @@ private fun PinKeypad(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         TextButton(onClick = onBackToBiometric) {
-            Text("Switch to Biometric", color = Color.White.copy(alpha = 0.7f))
+            Text("Switch to Biometric", color = Color.White.copy(alpha = 0.75f))
         }
     }
 }

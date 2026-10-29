@@ -34,7 +34,7 @@ class LockLauncher(
         // 3. Gracefully hide the immediate cover after activity is given enough time to render
         mainHandler.postDelayed({
             coverOverlay.hide()
-        }, 800L)
+        }, 350L)
     }
 
     fun dismissCover() {

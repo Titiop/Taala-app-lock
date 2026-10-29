@@ -38,6 +38,7 @@ import com.example.feature.settings.SettingsScreen
 import com.example.feature.setup.OnboardingScreen
 import com.example.feature.setup.SetupWizardScreen
 import com.example.ui.theme.ThemeMode
+import kotlinx.coroutines.launch
 
 @Composable
 fun TaalaApp(
@@ -169,12 +170,20 @@ private fun TaalaNavContent(
         composable(Screen.Settings.route) {
             SettingsScreen(
                 currentThemeMode = currentThemeMode,
-                onThemeModeChange = onThemeModeChange
+                onThemeModeChange = onThemeModeChange,
+                onOpenSetupWizard = { navController.navigate(Screen.SetupWizard.route) }
             )
         }
         composable(Screen.Onboarding.route) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
             OnboardingScreen(
-                onFinishOnboarding = { navController.navigate(Screen.SetupWizard.route) }
+                onFinishOnboarding = {
+                    scope.launch {
+                        com.example.core.data.datastore.AppSettingsDataStore(context).setCompletedOnboarding(true)
+                    }
+                    navController.navigate(Screen.SetupWizard.route)
+                }
             )
         }
         composable(Screen.SetupWizard.route) {

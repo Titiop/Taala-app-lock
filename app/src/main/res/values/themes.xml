@@ -10,4 +10,10 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="postSplashScreenTheme">@style/Theme.Taala</item>
     </style>
+
+    <style name="Theme.Taala.LockScreen" parent="Theme.Taala">
+        <item name="android:windowBackground">#0B0E17</item>
+        <item name="android:windowIsTranslucent">false</item>
+        <item name="android:windowDisablePreview">true</item>
+    </style>
 </resources>

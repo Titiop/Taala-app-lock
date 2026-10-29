@@ -80,6 +80,7 @@ import kotlinx.coroutines.launch
 fun SettingsScreen(
     currentThemeMode: ThemeMode = ThemeMode.SYSTEM,
     onThemeModeChange: (ThemeMode) -> Unit = {},
+    onOpenSetupWizard: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(),
     modifier: Modifier = Modifier
 ) {
@@ -296,6 +297,12 @@ fun SettingsScreen(
                             restoreInput = ""
                             showRestoreDialog = true
                         }
+                    )
+                    SettingsRow(
+                        title = "Permissions & Setup Wizard",
+                        subtitle = "Review and grant Accessibility, Usage, Overlay & Battery permissions",
+                        icon = Icons.Default.Shield,
+                        onClick = onOpenSetupWizard
                     )
                     SettingsRow(
                         title = "OEM & Restricted Settings Guide",

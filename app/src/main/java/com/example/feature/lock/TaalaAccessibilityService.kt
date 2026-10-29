@@ -28,6 +28,14 @@ class TaalaAccessibilityService : AccessibilityService() {
 
         // Shared session tracker singleton accessible to LockScreenActivity and service
         val sessionTracker = LockStateTracker()
+
+        @Volatile
+        var instance: TaalaAccessibilityService? = null
+            private set
+
+        fun dismissCover() {
+            instance?.coverOverlay?.hide()
+        }
     }
 
     // Section 6: Use a dedicated single-thread dispatcher for engine decisions
@@ -47,6 +55,7 @@ class TaalaAccessibilityService : AccessibilityService() {
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        instance = this
         _isServiceConnected.value = true
 
         foregroundRules = ForegroundRules(this)
@@ -153,6 +162,9 @@ class TaalaAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (instance == this) {
+            instance = null
+        }
         _isServiceConnected.value = false
         coverOverlay.hide()
         unregisterScreenOffReceiver()
